@@ -43,7 +43,16 @@
     }
 
 #include "sys/time.h"
-
+typedef union
+{
+    char c[4];
+    int i;
+}full;
+typedef struct
+{
+    full x;
+    full y;
+}out;
 static struct timeval old, now;
 static int uart_fd = -1;
 static char uart_buff[1024] = {0};
@@ -291,12 +300,26 @@ void opencv_ops(cv::Mat &rgb)
     // send result(center point, points) to uart
     snprintf(uart_buff, sizeof(uart_buff), "red: %d, %d, green: %d, %d, points: %d, ",
                     (int)mc.x, (int)mc.y, (int)mc_green.x, (int)mc_green.y, (int)hull.size());
-    for(size_t i = 0; i < hull.size(); i++)
-    {
-        snprintf(uart_buff + strlen(uart_buff), sizeof(uart_buff) - strlen(uart_buff), "%d, %d, ", (int)hull[i].x, (int)hull[i].y);
-    }
-    snprintf(uart_buff + strlen(uart_buff), sizeof(uart_buff) - strlen(uart_buff), "\r\n");
-    write(uart_fd, uart_buff, strlen(uart_buff));
+  //  for(size_t i = 0; i < hull.size(); i++)
+  //  {
+       // snprintf(uart_buff + strlen(uart_buff), sizeof(uart_buff) - strlen(uart_buff), "%d, %d, ", (int)hull[i].x, (int)hull[i].y);
+   // }
+    //snprintf(uart_buff + strlen(uart_buff), sizeof(uart_buff) - strlen(uart_buff), "\r\n");
+    out _out_buff_;
+    _out_buff_.x.i = (int)mc.x;
+    _out_buff_.y.i = (int)mc.y;
+    char write_buff[10];
+    write_buff[0]=0xa3;
+    write_buff[1]=_out_buff_.x.c[0];
+    write_buff[2]=_out_buff_.x.c[1];
+    write_buff[3]=_out_buff_.x.c[2];
+    write_buff[4]=_out_buff_.x.c[3];
+    write_buff[5]=_out_buff_.y.c[0];
+    write_buff[6]=_out_buff_.y.c[1];
+    write_buff[7]=_out_buff_.y.c[2];
+    write_buff[8]=_out_buff_.y.c[3];
+    write_buff[9]=0xc3;
+    write(uart_fd, write_buff, 10);
 }
 
 #ifdef CONFIG_IMLIB_ENABLE
